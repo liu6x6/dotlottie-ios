@@ -108,7 +108,6 @@ import MetalKit
 import CoreImage
 import AVFoundation
 import Combine
-import DotLottie
 
 public class DotLottieAnimationView: NSView, DotLottie {
     private var mtkView: MTKView!
@@ -157,7 +156,7 @@ public class DotLottieAnimationView: NSView, DotLottie {
             mtkView.device = metalDevice
         }
         
-//        mtkView.isOpaque = false
+        self.mtkView.layer?.isOpaque = false
         mtkView.framebufferOnly = false
         mtkView.delegate = self.coordinator
         mtkView.preferredFramesPerSecond = self.dotLottieViewModel.framerate
