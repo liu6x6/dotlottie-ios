@@ -97,3 +97,84 @@ public class DotLottieAnimationView: UIView, DotLottie {
 }
 
 #endif
+
+
+#if os(macOS)
+
+import Foundation
+import AppKit
+import Metal
+import MetalKit
+import CoreImage
+import AVFoundation
+import Combine
+
+public class DotLottieAnimationView: NSView, DotLottie {
+    private var mtkView: MTKView!
+    private var coordinator: Coordinator!
+    private var cancellableBag = Set<AnyCancellable>()
+
+    public var dotLottieViewModel: DotLottieAnimation
+    
+    public init(dotLottieViewModel: DotLottieAnimation) {
+        self.dotLottieViewModel = dotLottieViewModel
+        super.init(frame: .zero)
+        
+        // 监听播放器状态
+        dotLottieViewModel.player.$playerState.sink { [weak self] _ in
+            guard let self = self, self.mtkView != nil else { return }
+            self.mtkView.draw()
+
+            if self.dotLottieViewModel.isStopped() || self.dotLottieViewModel.isPaused() {
+                self.mtkView.isPaused = true
+            }
+
+            if self.dotLottieViewModel.isPlaying() {
+                self.mtkView.isPaused = false
+            }
+        }.store(in: &cancellableBag)
+
+        // 监听帧率变化
+        dotLottieViewModel.$framerate.sink { [weak self] _ in
+            guard let self = self, self.mtkView != nil else { return }
+            self.mtkView.preferredFramesPerSecond = dotLottieViewModel.framerate
+        }.store(in: &cancellableBag)
+
+        setupMetalView()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupMetalView() {
+        mtkView = MTKView(frame: bounds)
+        
+        self.coordinator = Coordinator(self, mtkView: mtkView)
+        
+        if let metalDevice = MTLCreateSystemDefaultDevice() {
+            mtkView.device = metalDevice
+        }
+        
+        self.mtkView.layer?.isOpaque = false
+        mtkView.framebufferOnly = false
+        mtkView.delegate = self.coordinator
+        mtkView.preferredFramesPerSecond = self.dotLottieViewModel.framerate
+        mtkView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        mtkView.enableSetNeedsDisplay = true
+        mtkView.isPaused = !self.dotLottieViewModel.isPlaying()
+        
+        addSubview(mtkView)
+    }
+    
+    public override func layout() {
+        super.layout()
+        mtkView.frame = bounds
+    }
+    
+    public func subscribe(observer: Observer) {
+        self.dotLottieViewModel.subscribe(observer: observer)
+    }
+}
+
+#endif
