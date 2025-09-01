@@ -1,3 +1,7 @@
+# add Mac APPKit support 
+The origin dotlottie-iOS only supports iOS and SwiftUI. So I use AI to generate some code to make it support MacOS AppKit also.
+
+
 # @lottiefiles/dotLottie-ios
 
 ### iOS player for .lottie and .json files.
